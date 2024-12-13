@@ -1,4 +1,4 @@
-# sampleCli
+# VZIP
 
 A description of this package.
  __     __  _____  ___   ____  

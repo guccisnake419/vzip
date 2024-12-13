@@ -1,11 +1,11 @@
 import XCTest
-@testable import sampleCli
+@testable import vzip
 
 final class sampleCliTests: XCTestCase {
     func testExample() throws {
         // This is an example of a functional test case.
         // Use XCTAssert and related functions to verify your tests produce the correct
         // results.
-        XCTAssertEqual(sampleCli().text, "Hello, World!")
+        // XCTAssertEqual(sampleCli().text, "Hello, World!")
     }
 }

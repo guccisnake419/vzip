@@ -5,40 +5,41 @@ import ziptools
 @main
 struct vzip:ParsableCommand {
     
-    @Option(help: "Specify a command")
+    @Option(help: "Lists the contents of an archive")
     public var list : String = ""
 
-    @Option(help: "Specify a command")
+    @Option(help: "Zip an archive")
     public var zip : String = ""
 
-    @Option(help: "Specify a command")
+    @Option(help: "Unzip an archive")
     public var unzip : String = ""
 
-    @Option(help: "Specify a command")
+    @Option(help: "Add a file/Directory to an archive")
     public var add : String = ""
 
-    @Option(help: "Specify a command")
+    @Option(help: "Remove a file from an archive")
     public var remove : String = ""
 
-    @Option(help: "Specify a command")
+    @Option(help: "Concatenate two archives")
     public var concat : String = ""
 
-    @Option(help: "Specify a command")
+    @Option(help: "Encode base64")
     public var encode_base64 : String = ""
 
-    @Option(help: "Specify a command")
+    @Option(help: "Encode base32")
     public var encode_base32 : String = ""
 
-    @Option(help: "Specify a command")
+    @Option(help: "Decode base64")
     public var decode_base64 : String = ""
 
-    @Option(help: "Specify a command")
+    @Option(help: "Decode base32")
     public var decode_base32 : String = ""
      
     public func run() throws {
         Figlet.say("VZIP")
+        let archive = ZipArchive()
         if list != "" {
-            print(list)
+            archive.list_files(list)
             
         }else if zip != "" {
             print(zip)
