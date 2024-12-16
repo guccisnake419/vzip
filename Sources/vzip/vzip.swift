@@ -36,15 +36,14 @@ struct vzip:ParsableCommand {
     public var decode_base32 : String = ""
      
     public func run() throws {
-        Figlet.say("VZIP")
         let archive = ZipArchive()
         if list != "" {
-            archive.list_files(list)
+            try archive.list_files(list)
             
         }else if zip != "" {
-            print(zip)
+            archive.zip(zip)
         }else if unzip != ""{
-
+            archive.unzip(unzip)
         }else if add != "" {
 
         }else if remove != "" {
@@ -59,7 +58,10 @@ struct vzip:ParsableCommand {
 
         }else if decode_base32 != ""{
 
-        }
+        }else{
+            Figlet.say("VZIP")
+            print(vzip.helpMessage())
+        } 
 
     }
 }
