@@ -36,7 +36,8 @@ struct vzip:ParsableCommand {
     public var decode_base32 : String = ""
      
     public func run() throws {
-        let archive = ZipArchive()
+       
+        var archive = ZipArchive()
         if list != "" {
             try archive.list_files(list)
             

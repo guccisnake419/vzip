@@ -16,3 +16,10 @@ https://chatgpt.com/c/675a571d-4c3c-8002-9949-a4c20ddf34c4
 
 About the Zip file format
 https://en.wikipedia.org/wiki/ZIP_(file_format)#Encryption
+
+Debugging with lldb
+
+```
+to print a variable 
+    frame variable var_name
+```
