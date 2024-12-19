@@ -1,5 +1,23 @@
 import Foundation
 
+/*
+    Central directory file header signature = 0x02014b50
+    Most of the signatures end with 0x4b50, which is stored in little-endian ordering
+    Little Endianess: Least significant byte is stored at the Lowest memory address
+
+
+*/
+public let ZIP_CD_HEADER_SIG : [UInt8] = [0x50, 0x4b, 0x01, 0x02]
+
+/*
+    End of Central directory signature =  0x06054b50
+*/
+public let EOCD_SIG: [UInt8] = [0x50, 0x4b, 0x05, 0x06]
+
+
+/*
+    Central directory Header model
+ */
 struct CdHeader{
     var filename_length : UInt16 = 0
     var extra_field_length: UInt16 = 0
@@ -9,6 +27,7 @@ struct CdHeader{
     var extra_field : String = ""
     var file_comment : String = ""
 }
+
 func print_data_elem(from data: Data){
     let data_r = Array(data.reversed())
     print(data_r)
@@ -18,7 +37,6 @@ func print_data_elem(from data: Data){
 func get_2_bytes(from data: Data, range : Range<Data.Index>) -> UInt16{
         return data.subdata(in: range).withUnsafeBytes { rawBuffer in
         var value: UInt16 = 0
-        // Get a mutable raw buffer to 'value'
         withUnsafeMutableBytes(of: &value) { destBytes in
             destBytes.copyBytes(from: rawBuffer)
         }
@@ -60,7 +78,6 @@ func read_cd_header(from data: Data, start :Int)-> CdHeader{
                     offset: offset,
                     filename: filename,
                     extra_field: extra_field,
-                    file_comment: comment
-    )
+                    file_comment: comment)
 }
 

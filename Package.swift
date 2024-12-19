@@ -14,6 +14,7 @@ let package = Package(
         // .package(url: /* package url */, from: "1.0.0"),
         .package(url: "https://github.com/apple/example-package-figlet", branch: "main"),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.0.0"),
+        .package(url: "https://github.com/weichsel/ZIPFoundation.git", .upToNextMajor(from: "0.9.0"))
         
         
     ],
@@ -30,7 +31,11 @@ let package = Package(
             ],
             path: "Sources/vzip"
             ),
-        .target(name: "ziptools", path: "Sources/ziptools"),
+        .target(name: "ziptools",
+                dependencies: [
+                    "ZIPFoundation"
+                ],
+                path: "Sources/ziptools"),
         .testTarget(
             name: "vzipTests",
             dependencies: ["vzip"]),
