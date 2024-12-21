@@ -1,5 +1,9 @@
 import Foundation
 
-enum FileError: Error {
+public enum FileError: Error {
     case CannotOpenFile(path: String)
+}
+
+public enum ArgError: Error{
+    case ArgumentExceded(count : Int)
 }

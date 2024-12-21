@@ -8,8 +8,8 @@ struct vzip:ParsableCommand {
     @Option(help: "Lists the contents of an archive")
     public var list : String = ""
 
-    @Option(help: "Zip an archive")
-    public var zip : String = ""
+    @Option(parsing: .upToNextOption,help: "Zip an archive")
+    public var zip : [String] = []
 
     @Option(help: "Unzip an archive")
     public var unzip : String = ""
@@ -41,8 +41,17 @@ struct vzip:ParsableCommand {
         if list != "" {
             try archive.list_files(list)
             
-        }else if zip != "" {
-            archive.zip(zip)
+        }else if zip != [] {
+            print(zip)
+            switch zip.count {
+            case 1:
+                try archive.zip(zip[0])
+            case 2:
+                try archive.zip(zip[0], to: zip[1])
+            default:
+                throw ArgError.ArgumentExceded(count: zip.count)
+            }
+            
         }else if unzip != ""{
             archive.unzip(unzip)
         }else if add != "" {
