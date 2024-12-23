@@ -35,7 +35,6 @@ public struct ZipArchive {
                 print(cd_header.filename)
             }
             
-            
         }catch {
            throw FileError.CannotOpenFile(path: path)
             
@@ -55,7 +54,15 @@ public struct ZipArchive {
         
     }
     
-    public func unzip(_ path :String){}
+    public func unzip(_ source_path :String, to dest_path : String = "") throws{
+        let source_url = URL(fileURLWithPath: source_path)
+        print(source_url.pathExtension)
+        guard source_url.pathExtension == "zip" else {//ok :\
+            throw ArgError.UnrecognizableExtension(ext: source_url.pathExtension)
+        }
+        
+        
+    }
     public func add(to dest:String, from source:String ){}
     public func remove(from path:String, file:String ){
         //verify presence of file / directory

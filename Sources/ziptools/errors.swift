@@ -6,4 +6,6 @@ public enum FileError: Error {
 
 public enum ArgError: Error{
     case ArgumentExceded(count : Int)
+    case UnrecognizableExtension(ext : String)
 }
+
