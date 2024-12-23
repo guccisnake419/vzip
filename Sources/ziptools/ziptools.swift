@@ -42,21 +42,19 @@ public struct ZipArchive {
         }
     }
     
-    public func zip(_ source_path :String, to dest_path : String = "") throws{
+    public func zip(_ source_path :String, to dest_path : String = "", compressionMethod: CompressionMethod) throws{
         let source_url = URL(fileURLWithPath: source_path)
-        var dest_url = source_url.deletingLastPathComponent()
-        print (source_url)
-        print(dest_url)
+        var dest_url = dest_path.isEmpty ? source_url.deletingLastPathComponent() :URL(fileURLWithPath: dest_path)
         let fileManager = FileManager()
         dest_url.appendPathComponent("\(source_url.lastPathComponent).zip")
         do {
-            try fileManager.zipItem(at: source_url, to: dest_url, compressionMethod: .deflate)
+            try fileManager.zipItem(at: source_url, to: dest_url, compressionMethod: compressionMethod)
         } catch {
             print("Creation of ZIP archive failed with error:")
         }
         
-        
     }
+    
     public func unzip(_ path :String){}
     public func add(to dest:String, from source:String ){}
     public func remove(from path:String, file:String ){

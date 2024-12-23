@@ -1,6 +1,7 @@
 import Figlet
 import ArgumentParser
 import ziptools
+import ZIPFoundation
 
 @main
 struct vzip:ParsableCommand {
@@ -8,7 +9,7 @@ struct vzip:ParsableCommand {
     @Option(help: "Lists the contents of an archive")
     public var list : String = ""
 
-    @Option(parsing: .upToNextOption,help: "Zip an archive")
+    @Option(parsing: .upToNextOption, help: "Zip an archive")
     public var zip : [String] = []
 
     @Option(help: "Unzip an archive")
@@ -34,7 +35,11 @@ struct vzip:ParsableCommand {
 
     @Option(help: "Decode base32")
     public var decode_base32 : String = ""
+    
+    @Flag(help: "Use deflate compression method")
+    public var no_deflate : Bool = false
      
+    
     public func run() throws {
        
         var archive = ZipArchive()
@@ -43,11 +48,13 @@ struct vzip:ParsableCommand {
             
         }else if zip != [] {
             print(zip)
+            let compression_method = no_deflate ? CompressionMethod.none : CompressionMethod.deflate
+            print(compression_method)
             switch zip.count {
             case 1:
-                try archive.zip(zip[0])
+                try archive.zip(zip[0], compressionMethod: compression_method)
             case 2:
-                try archive.zip(zip[0], to: zip[1])
+                try archive.zip(zip[0], to: zip[1], compressionMethod: compression_method)
             default:
                 throw ArgError.ArgumentExceded(count: zip.count)
             }
