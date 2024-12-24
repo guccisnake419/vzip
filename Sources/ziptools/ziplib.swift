@@ -63,14 +63,6 @@ func read_cd_header(from data: Data, start :Int)-> CdHeader{
     let filename: String = String(data: data.subdata(in: (start + 46)..<(start + 46 + n)), encoding: .utf8) ?? ""
     let extra_field : String = String(data: data.subdata(in: (start + 46 + n)..<(start + 46 + n + m)), encoding: .utf8) ?? ""
     let comment : String = String(data: data.subdata(in: (start + 46 + n + m )..<(start + 46 + n + m + k)), encoding: .utf8) ?? ""
-
-//    print(n)
-//    print(m)
-//    print(k)
-//    print(filename)
-//    print(extra_field)
-//    print(comment)
-//    print(offset)
      
     return CdHeader(filename_length: UInt16(n),
                     extra_field_length: UInt16(m),

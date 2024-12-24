@@ -23,3 +23,7 @@ Debugging with lldb
 to print a variable 
     frame variable var_name
 ```
+
+Build executable
+
+swift build -c release --show-bin-path

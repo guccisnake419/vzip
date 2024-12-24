@@ -55,12 +55,22 @@ public struct ZipArchive {
     }
     
     public func unzip(_ source_path :String, to dest_path : String = "") throws{
+        //TODO: Add fature to unzip a specific file from the archive
         let source_url = URL(fileURLWithPath: source_path)
-        print(source_url.pathExtension)
-        guard source_url.pathExtension == "zip" else {//ok :\
+        var dest_url = dest_path.isEmpty ? source_url.deletingLastPathComponent() :URL(fileURLWithPath: dest_path)
+        
+        guard source_url.pathExtension == "zip" else {
             throw ArgError.UnrecognizableExtension(ext: source_url.pathExtension)
         }
-        
+        let trimmed = source_url.lastPathComponent.hasSuffix(".zip") ? String(source_url.lastPathComponent.dropLast(4)) : source_url.lastPathComponent
+        dest_url.appendingPathComponent("\(trimmed)")
+        let fileManager = FileManager()
+        do {
+            try fileManager.createDirectory(at: dest_url, withIntermediateDirectories: true, attributes: nil)
+            try fileManager.unzipItem(at: source_url, to: dest_url)
+        } catch {
+            print("Extraction of ZIP archive failed with error:")
+        }
         
     }
     public func add(to dest:String, from source:String ){}
