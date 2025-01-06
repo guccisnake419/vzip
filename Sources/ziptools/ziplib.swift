@@ -18,7 +18,29 @@ public let EOCD_SIG: [UInt8] = [0x50, 0x4b, 0x05, 0x06]
 /*
     Central directory Header model
  */
-struct CdHeader{
+
+public struct ArchiveInfo{
+    var file_entry_start : UInt64 = 0
+    var cd_entry_start : UInt64 = 0
+    var eocd_entry_start : UInt64 = 0
+}
+
+@frozen
+public struct EntryHeader{
+    
+    
+}
+
+@frozen
+public struct EocdHeader{
+    
+    
+}
+
+
+
+@frozen
+public struct CdHeader{
     var filename_length : UInt16 = 0
     var extra_field_length: UInt16 = 0
     var comment_length: UInt16 = 0
@@ -73,3 +95,34 @@ func read_cd_header(from data: Data, start :Int)-> CdHeader{
                     file_comment: comment)
 }
 
+func cd_header_from_struct(cd_header: CdHeader) -> Data {
+    
+    return Data()
+}
+
+func entry_header_from_struct(entry_header: EntryHeader) -> Data {
+    
+    return Data()
+}
+
+func dissectZip(_ archive: Data) -> ArchiveInfo {
+    return ArchiveInfo(
+        file_entry_start: 0,
+        cd_entry_start: UInt64(archive.firstRange(of: ZIP_CD_HEADER_SIG)!.first!),
+        eocd_entry_start: UInt64(archive.firstRange(of: EOCD_SIG)!.first!)
+    )
+}
+
+func concatArchive(_ first: Data, _ first_info : ArchiveInfo, _ second: Data, _ second_info: ArchiveInfo) -> Data{
+    
+    let first_ecod = read_eocd_from_data(first)
+    let combination = first.subdata(in: (0)..<(Int(first_info.cd_entry_start))) +
+        second.subdata(in: (0)..<(Int(second_info.cd_entry_start))) +
+    first.subdata(in: (Int(first_info.cd_entry_start))..<(Int(first_info.eocd_entry_start))) +
+    second.subdata(in: (Int(second_info.cd_entry_start))..<(Int(second_info.eocd_entry_start)))
+    return Data(combination)
+}
+
+func read_eocd_from_data(_ data: Data) -> EocdHeader {
+    return EocdHeader()
+}

@@ -1,10 +1,11 @@
 import Foundation
 import ZIPFoundation
 
+//TODO: Replace prints with throws
 
 public struct ZipArchive {
     //maybe Data structure for archive 
-    
+     
     var files :[CdHeader] = []
     
     public init(){}
@@ -25,6 +26,7 @@ public struct ZipArchive {
     }
     
     public mutating func list_files(_ path :String) throws {
+        //TODO: Add size and last modified
         let url = URL(fileURLWithPath: path)
         do {
             
@@ -73,7 +75,14 @@ public struct ZipArchive {
         }
         
     }
-    public func add(to dest:String, from source:String ){}
+    public func add(to dest:String, from source:String, compressionMethod: CompressionMethod ) throws{
+        //source could be a dir or a file
+        //create central directory header
+        //create file entry and
+        //update eod entry
+    
+        
+    }
     public func remove(from path:String, file:String ){
         //verify presence of file / directory
         //remove Central directory header
@@ -83,7 +92,29 @@ public struct ZipArchive {
         
         
     }
-    public func concat(_ path1: String, _ path2: String, _ dest: String ){}
+    /*
+     concatenates two zip files together
+     */
+    public func concat(_ path1: String, _ path2: String, _ dest: String ) throws{
+        let url1 = URL(fileURLWithPath: path1)
+        let url2 = URL(fileURLWithPath: path2)
+        do{
+            let data1 = try Data(contentsOf: url1)
+            let data2 = try Data(contentsOf: url2)
+            let (big, small) = data1.count > data2.count ? (data1, data2): (data1, data2)
+            let big_info = dissectZip(big)
+            let small_info = dissectZip(small)
+            let combined = concatArchive(big, big_info, small, small_info )
+            
+            
+            
+            
+        } catch {
+           throw FileError.CannotOpenFile(path: path1)
+            
+        }
+        
+    }
     public func encode_base64(_ path: String){}
     public func decode_base64(_ path: String){}
     public func encode_base32(_ path: String){}

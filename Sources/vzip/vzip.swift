@@ -15,14 +15,14 @@ struct vzip:ParsableCommand {
     @Option(parsing: .upToNextOption, help: "Unzip an archive")
     public var unzip : [String] = []
 
-    @Option(help: "Add a file/Directory to an archive")
-    public var add : String = ""
+    @Option(parsing: .upToNextOption, help: "Add a file/Directory to an archive")
+    public var add : [String] = []
 
     @Option(help: "Remove a file from an archive")
     public var remove : String = ""
 
-    @Option(help: "Concatenate two archives")
-    public var concat : String = ""
+    @Option(parsing: .upToNextOption, help: "Concatenate two archives")
+    public var concat : [String] = []
 
     @Option(help: "Encode base64")
     public var encode_base64 : String = ""
@@ -41,15 +41,14 @@ struct vzip:ParsableCommand {
      
     
     public func run() throws {
-       
+        let compression_method = no_deflate ? CompressionMethod.none : CompressionMethod.deflate
+        
         var archive = ZipArchive()
         if list != "" {
             try archive.list_files(list)
             
         }else if zip != [] {
-            print(zip)
-            let compression_method = no_deflate ? CompressionMethod.none : CompressionMethod.deflate
-            print(compression_method)
+            
             switch zip.count {
             case 1:
                 try archive.zip(zip[0], compressionMethod: compression_method)
@@ -61,11 +60,13 @@ struct vzip:ParsableCommand {
             
         }else if unzip != []{
             try archive.unzip(unzip[0])
-        }else if add != "" {
-
+        }else if add != [] {
+            try archive.add(to: add[0], from: add[1], compressionMethod: compression_method)
+        
         }else if remove != "" {
 
-        }else if concat != ""{
+        }else if concat != [] {
+            try archive.concat(concat[0], concat[1], concat[2])
 
         }else if encode_base64 != "" {
 
