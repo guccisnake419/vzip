@@ -33,6 +33,15 @@ public struct EntryHeader{
 
 @frozen
 public struct EocdHeader{
+    var eocd_sig = EOCD_SIG
+    var disk_num : UInt16 = 0
+    var cd_start : UInt16 = 0
+    var cd_count_on_disk : UInt16 = 0
+    var cd_total : UInt16 = 0
+    var cd_size : UInt32 = 0
+    var cd_off : UInt32 = 0
+    var comment_length : UInt16 = 0
+    var  comment : String = ""
     
     
 }
@@ -56,7 +65,9 @@ func print_data_elem(from data: Data){
 
 }
 
-func get_2_bytes(from data: Data, range : Range<Data.Index>) -> UInt16{
+func get_2_bytes(from data: Data, start : Int) -> UInt16{
+        let range = (start)..<(start+2)
+        //TODO: since it gets two bytes only add the start index?
         return data.subdata(in: range).withUnsafeBytes { rawBuffer in
         var value: UInt16 = 0
         withUnsafeMutableBytes(of: &value) { destBytes in
@@ -66,7 +77,8 @@ func get_2_bytes(from data: Data, range : Range<Data.Index>) -> UInt16{
     }
 }
 
-func get_4_bytes(from data: Data, range : Range<Data.Index>) -> UInt32{
+func get_4_bytes(from data: Data, start : Int) -> UInt32{
+    let range = (start)..<(start+4)
     return data.subdata(in: range).withUnsafeBytes { rawBuffer in
         var value: UInt32 = 0
         withUnsafeMutableBytes(of: &value) { destBytes in
@@ -78,10 +90,10 @@ func get_4_bytes(from data: Data, range : Range<Data.Index>) -> UInt32{
 
 func read_cd_header(from data: Data, start :Int)-> CdHeader{
     
-    let n = Int(get_2_bytes(from: data, range:(start + 28)..<(start + 30) ))
-    let m = Int(get_2_bytes(from: data, range: (start + 30)..<(start + 32)))
-    let k = Int(get_2_bytes(from: data, range:(start + 32)..<(start + 34) ))
-    let offset = get_4_bytes(from: data, range: (start + 42)..<(start + 46) )
+    let n = Int(get_2_bytes(from: data, start:start+28 ))
+    let m = Int(get_2_bytes(from: data, start: (start + 30)))
+    let k = Int(get_2_bytes(from: data, start:(start + 32) ))
+    let offset = get_4_bytes(from: data, start: (start + 42) )
     let filename: String = String(data: data.subdata(in: (start + 46)..<(start + 46 + n)), encoding: .utf8) ?? ""
     let extra_field : String = String(data: data.subdata(in: (start + 46 + n)..<(start + 46 + n + m)), encoding: .utf8) ?? ""
     let comment : String = String(data: data.subdata(in: (start + 46 + n + m )..<(start + 46 + n + m + k)), encoding: .utf8) ?? ""
@@ -93,6 +105,9 @@ func read_cd_header(from data: Data, start :Int)-> CdHeader{
                     filename: filename,
                     extra_field: extra_field,
                     file_comment: comment)
+}
+func eocd_header_from_struct(eocd_header: EocdHeader) -> Data {
+    return Data()
 }
 
 func cd_header_from_struct(cd_header: CdHeader) -> Data {
@@ -116,13 +131,34 @@ func dissectZip(_ archive: Data) -> ArchiveInfo {
 func concatArchive(_ first: Data, _ first_info : ArchiveInfo, _ second: Data, _ second_info: ArchiveInfo) -> Data{
     
     let first_ecod = read_eocd_from_data(first)
-    let combination = first.subdata(in: (0)..<(Int(first_info.cd_entry_start))) +
-        second.subdata(in: (0)..<(Int(second_info.cd_entry_start))) +
+    let second_ecod = read_eocd_from_data(second)
+    print(first_ecod)
+    print(second_ecod)
+    let entry_comb = first.subdata(in: (0)..<(Int(first_info.cd_entry_start))) +  second.subdata(in: (0)..<(Int(second_info.cd_entry_start)))
+    //update the offset in the central directory of the second
+    
+    //then update the first's eocd 
+    
+    let combination = entry_comb +
     first.subdata(in: (Int(first_info.cd_entry_start))..<(Int(first_info.eocd_entry_start))) +
     second.subdata(in: (Int(second_info.cd_entry_start))..<(Int(second_info.eocd_entry_start)))
     return Data(combination)
 }
 
 func read_eocd_from_data(_ data: Data) -> EocdHeader {
-    return EocdHeader()
+    let start = Int(data.firstRange(of: EOCD_SIG)!.first!)
+    
+    let disk_num = get_2_bytes(from: data, start:(start+4) )
+    let cd_start = get_2_bytes(from: data, start:(start+6))
+    let cd_count_on_disk = get_2_bytes(from: data, start: (start+8))
+    let cd_total = get_2_bytes(from: data , start:(start+10) )
+    let cd_size = get_4_bytes(from: data, start:(start+12))
+    let offset = get_4_bytes(from: data, start: (start+16))
+    let comment_length = get_2_bytes(from: data, start: start+20)
+    let comment : String = String(data: data.subdata(in: (start + 22)..<(data.count)), encoding: .utf8) ?? ""
+    
+    return EocdHeader(
+        disk_num: disk_num, cd_start: cd_start, cd_count_on_disk: cd_count_on_disk, cd_total: cd_total, cd_size: cd_size, cd_off: offset, comment_length: comment_length, comment: comment
+    
+    )
 }
