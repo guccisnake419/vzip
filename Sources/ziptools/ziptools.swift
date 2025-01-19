@@ -59,7 +59,7 @@ public struct ZipArchive {
     public func unzip(_ source_path :String, to dest_path : String = "") throws{
         //TODO: Add fature to unzip a specific file from the archive
         let source_url = URL(fileURLWithPath: source_path)
-        var dest_url = dest_path.isEmpty ? source_url.deletingLastPathComponent() :URL(fileURLWithPath: dest_path)
+        let dest_url = dest_path.isEmpty ? source_url.deletingLastPathComponent() :URL(fileURLWithPath: dest_path)
         
         guard source_url.pathExtension == "zip" else {
             throw ArgError.UnrecognizableExtension(ext: source_url.pathExtension)
@@ -96,15 +96,19 @@ public struct ZipArchive {
      concatenates two zip files together
      */
     public func concat(_ path1: String, _ path2: String, _ dest: String ) throws{
-        let url1 = URL(fileURLWithPath: path1)
-        let url2 = URL(fileURLWithPath: path2)
+        let fileManager = FileManager()
+    
         do{
-            let data1 = try Data(contentsOf: url1)
-            let data2 = try Data(contentsOf: url2)
+            let data1 = try Data(contentsOf: URL(fileURLWithPath: path1))
+            let data2 = try Data(contentsOf: URL(fileURLWithPath: path2))
             let (big, small) = data1.count > data2.count ? (data1, data2): (data1, data2)
             let big_info = dissectZip(big)
             let small_info = dissectZip(small)
             let combined = concatArchive(big, big_info, small, small_info )
+//            let dest_url = URL(fileURLWithPath: dest)
+           
+                
+            fileManager.createFile(atPath: dest, contents: combined)
             
             
             

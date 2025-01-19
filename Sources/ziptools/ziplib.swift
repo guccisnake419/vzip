@@ -43,7 +43,25 @@ public struct EocdHeader{
     var comment_length : UInt16 = 0
     var  comment : String = ""
     
-    
+    func toData() -> Data {
+        var data = Data()
+
+        data.append(Data(eocd_sig))
+        withUnsafeBytes(of: disk_num) { data.append(contentsOf: $0) }
+        withUnsafeBytes(of: cd_start) { data.append(contentsOf: $0) }
+        withUnsafeBytes(of: cd_count_on_disk) { data.append(contentsOf: $0) }
+        withUnsafeBytes(of: cd_total) { data.append(contentsOf: $0) }
+        withUnsafeBytes(of: cd_size) { data.append(contentsOf: $0) }
+        withUnsafeBytes(of: cd_off) { data.append(contentsOf: $0) }
+        withUnsafeBytes(of: comment_length) { data.append(contentsOf: $0) }
+
+
+        if let commentData = comment.data(using: .utf8) {
+            data.append(commentData)
+        }
+
+        return data
+    }
 }
 
 
@@ -88,6 +106,8 @@ func get_4_bytes(from data: Data, start : Int) -> UInt32{
     }
 }
 
+
+
 func read_cd_header(from data: Data, start :Int)-> CdHeader{
     
     let n = Int(get_2_bytes(from: data, start:start+28 ))
@@ -106,19 +126,7 @@ func read_cd_header(from data: Data, start :Int)-> CdHeader{
                     extra_field: extra_field,
                     file_comment: comment)
 }
-func eocd_header_from_struct(eocd_header: EocdHeader) -> Data {
-    return Data()
-}
 
-func cd_header_from_struct(cd_header: CdHeader) -> Data {
-    
-    return Data()
-}
-
-func entry_header_from_struct(entry_header: EntryHeader) -> Data {
-    
-    return Data()
-}
 
 func dissectZip(_ archive: Data) -> ArchiveInfo {
     return ArchiveInfo(
@@ -129,25 +137,46 @@ func dissectZip(_ archive: Data) -> ArchiveInfo {
 }
 
 func concatArchive(_ first: Data, _ first_info : ArchiveInfo, _ second: Data, _ second_info: ArchiveInfo) -> Data{
-    
+    //second is the smaller one by size
+    //TODO: use the file with the smallest count of Central directories instead?
     let first_ecod = read_eocd_from_data(first)
     let second_ecod = read_eocd_from_data(second)
-    print(first_ecod)
-    print(second_ecod)
+    let new_comment = "NOTE: This file has been concatenated \n first comment: \(first_ecod.comment) \n second comment \(second_ecod.comment)"
+    let new_ecod = EocdHeader(
+        cd_count_on_disk: first_ecod.cd_count_on_disk+second_ecod.cd_count_on_disk,
+                              cd_total: first_ecod.cd_total + second_ecod.cd_total,
+        cd_size: first_ecod.cd_size+second_ecod.cd_size, cd_off: UInt32(first_info.cd_entry_start + second_info.cd_entry_start),
+        comment_length: UInt16(new_comment.count), comment: new_comment)
+    
+    
+
+    
+    var second_cp: Data = second
+    var start = second_cp.firstRange(of: ZIP_CD_HEADER_SIG)
+    while start != nil {
+        let start_index = start!.first!
+        let offset_start = start_index + 42
+        var offset = get_4_bytes(from: second_cp, start: offset_start) + UInt32(first_info.cd_entry_start )
+        let offset_bytes = Array(withUnsafeBytes(of: &offset) {Data($0)})
+        for i in 0...3 {
+            second_cp[offset_start + i] = offset_bytes[i]
+        }
+        
+        start = second_cp.firstRange(of: ZIP_CD_HEADER_SIG, in:(start!.last!)..<(second_cp.count))
+        
+    }
+
     let entry_comb = first.subdata(in: (0)..<(Int(first_info.cd_entry_start))) +  second.subdata(in: (0)..<(Int(second_info.cd_entry_start)))
-    //update the offset in the central directory of the second
     
-    //then update the first's eocd 
-    
+   
     let combination = entry_comb +
     first.subdata(in: (Int(first_info.cd_entry_start))..<(Int(first_info.eocd_entry_start))) +
-    second.subdata(in: (Int(second_info.cd_entry_start))..<(Int(second_info.eocd_entry_start)))
-    return Data(combination)
+    second_cp.subdata(in: (Int(second_info.cd_entry_start))..<(Int(second_info.eocd_entry_start))) + new_ecod.toData()
+    return combination
 }
 
 func read_eocd_from_data(_ data: Data) -> EocdHeader {
     let start = Int(data.firstRange(of: EOCD_SIG)!.first!)
-    
     let disk_num = get_2_bytes(from: data, start:(start+4) )
     let cd_start = get_2_bytes(from: data, start:(start+6))
     let cd_count_on_disk = get_2_bytes(from: data, start: (start+8))
