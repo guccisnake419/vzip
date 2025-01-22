@@ -6,7 +6,7 @@ import ZIPFoundation
 public struct ZipArchive {
     //maybe Data structure for archive 
      
-    var files :[CdHeader] = []
+    var files : Dictionary<String, CdHeader> = [:]
     
     public init(){}
     
@@ -19,7 +19,7 @@ public struct ZipArchive {
         var start = data_cp.firstRange(of: ZIP_CD_HEADER_SIG)
         while start != nil {
             let cd_header = read_cd_header(from: data_cp, start: start!.first!)
-            self.files.append(cd_header)
+            self.files[cd_header.filename] = cd_header
             data_cp = (data_cp.suffix(from: start!.last!))
             start =  data_cp.firstRange(of: ZIP_CD_HEADER_SIG)
         }
@@ -33,8 +33,8 @@ public struct ZipArchive {
             let data = try Data(contentsOf: url)
             read_cd_headers(from: data)
             
-            files.forEach{cd_header in
-                print(cd_header.filename)
+            for key in files.keys {
+                print(files[key]?.filename ?? "")
             }
             
         }catch {
@@ -76,6 +76,9 @@ public struct ZipArchive {
         
     }
     public func add(to dest:String, from source:String, compressionMethod: CompressionMethod ) throws{
+        //users could alternatively zip and concat the file
+        
+        
         //source could be a dir or a file
         //create central directory header
         //create file entry and
@@ -83,12 +86,40 @@ public struct ZipArchive {
     
         
     }
-    public func remove(from path:String, file:String ){
+    public mutating func remove(from path:String, file:String ) throws{
         //verify presence of file / directory
         //remove Central directory header
             //change the date of the first cd record possibly?
         //remove file entry header and file entry
         //decrease EOCD Num of central directory records
+        
+        let url = URL(fileURLWithPath: path)
+        do {
+            var data = try Data(contentsOf: url)
+            
+            var data_cp: Data = data
+            var start = data_cp.firstRange(of: ZIP_CD_HEADER_SIG)
+            var cd_header : CdHeader = CdHeader()
+            var start_index :Int = 0
+            while start != nil {
+                start_index = start!.first!
+                cd_header = read_cd_header(from: data_cp, start:start_index)
+                if cd_header.filename == file {
+                    break
+                }
+                
+                start = data_cp.firstRange(of: ZIP_CD_HEADER_SIG, in:(start!.last!)..<(data_cp.count))
+            }
+            //remove cd_header
+            data.removeSubrange((start_index)..<(Int(cd_header.cd_header_size) + start_index))
+            
+            //remove file entry header
+//            data.removeSubrange((cd_header.offset)..<())
+            
+            
+        }catch {
+            
+        }
         
         
     }

@@ -67,7 +67,9 @@ public struct EocdHeader{
 
 
 @frozen
-public struct CdHeader{
+public struct CdHeader : Hashable{
+    var compressed_size : UInt32 = 0
+    var uncompressed_size : UInt32 = 0
     var filename_length : UInt16 = 0
     var extra_field_length: UInt16 = 0
     var comment_length: UInt16 = 0
@@ -75,6 +77,7 @@ public struct CdHeader{
     var filename : String = ""
     var extra_field : String = ""
     var file_comment : String = ""
+    var cd_header_size : UInt16 = 0
 }
 
 func print_data_elem(from data: Data){
@@ -109,7 +112,8 @@ func get_4_bytes(from data: Data, start : Int) -> UInt32{
 
 
 func read_cd_header(from data: Data, start :Int)-> CdHeader{
-    
+    let compressed_size = get_4_bytes(from: data, start: start + 20 )
+    let uncompressed_size = get_4_bytes(from: data, start: start + 24)
     let n = Int(get_2_bytes(from: data, start:start+28 ))
     let m = Int(get_2_bytes(from: data, start: (start + 30)))
     let k = Int(get_2_bytes(from: data, start:(start + 32) ))
@@ -117,14 +121,20 @@ func read_cd_header(from data: Data, start :Int)-> CdHeader{
     let filename: String = String(data: data.subdata(in: (start + 46)..<(start + 46 + n)), encoding: .utf8) ?? ""
     let extra_field : String = String(data: data.subdata(in: (start + 46 + n)..<(start + 46 + n + m)), encoding: .utf8) ?? ""
     let comment : String = String(data: data.subdata(in: (start + 46 + n + m )..<(start + 46 + n + m + k)), encoding: .utf8) ?? ""
+    let cd_header_size = 46 + n + m + k
      
-    return CdHeader(filename_length: UInt16(n),
+    return CdHeader(
+                    compressed_size: compressed_size,
+                    uncompressed_size: uncompressed_size,
+                    filename_length: UInt16(n),
                     extra_field_length: UInt16(m),
                     comment_length: UInt16(k),
                     offset: offset,
                     filename: filename,
                     extra_field: extra_field,
-                    file_comment: comment)
+                    file_comment: comment,
+                    cd_header_size: UInt16(cd_header_size)
+    )
 }
 
 

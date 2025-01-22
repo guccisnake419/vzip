@@ -19,7 +19,7 @@ struct vzip:ParsableCommand {
     public var add : [String] = []
 
     @Option(help: "Remove a file from an archive")
-    public var remove : String = ""
+    public var remove : [String] = []
 
     @Option(parsing: .upToNextOption, help: "Concatenate two archives")
     public var concat : [String] = []
@@ -63,8 +63,8 @@ struct vzip:ParsableCommand {
         }else if add != [] {
             try archive.add(to: add[0], from: add[1], compressionMethod: compression_method)
         
-        }else if remove != "" {
-
+        }else if remove != [] {
+            try archive.remove(from: remove[0], file: remove[1])
         }else if concat != [] {
             try archive.concat(concat[0], concat[1], concat[2])
 
