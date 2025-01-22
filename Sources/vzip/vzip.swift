@@ -18,7 +18,7 @@ struct vzip:ParsableCommand {
     @Option(parsing: .upToNextOption, help: "Add a file/Directory to an archive")
     public var add : [String] = []
 
-    @Option(help: "Remove a file from an archive")
+    @Option(parsing: .upToNextOption, help: "Remove a file from an archive")
     public var remove : [String] = []
 
     @Option(parsing: .upToNextOption, help: "Concatenate two archives")

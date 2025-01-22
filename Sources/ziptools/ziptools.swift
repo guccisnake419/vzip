@@ -6,7 +6,7 @@ import ZIPFoundation
 public struct ZipArchive {
     //maybe Data structure for archive 
      
-    var files : Dictionary<String, CdHeader> = [:]
+    var files : [CdHeader] = []
     
     public init(){}
     
@@ -19,7 +19,7 @@ public struct ZipArchive {
         var start = data_cp.firstRange(of: ZIP_CD_HEADER_SIG)
         while start != nil {
             let cd_header = read_cd_header(from: data_cp, start: start!.first!)
-            self.files[cd_header.filename] = cd_header
+            files.append(cd_header)
             data_cp = (data_cp.suffix(from: start!.last!))
             start =  data_cp.firstRange(of: ZIP_CD_HEADER_SIG)
         }
@@ -33,8 +33,8 @@ public struct ZipArchive {
             let data = try Data(contentsOf: url)
             read_cd_headers(from: data)
             
-            for key in files.keys {
-                print(files[key]?.filename ?? "")
+            for file in files {
+                print(file.filename)
             }
             
         }catch {
@@ -47,7 +47,7 @@ public struct ZipArchive {
         let source_url = URL(fileURLWithPath: source_path)
         var dest_url = dest_path.isEmpty ? source_url.deletingLastPathComponent() :URL(fileURLWithPath: dest_path)
         let fileManager = FileManager()
-        dest_url.appendPathComponent("\(source_url.lastPathComponent).zip")
+        let _ = dest_url.appendPathComponent("\(source_url.lastPathComponent).zip")
         do {
             try fileManager.zipItem(at: source_url, to: dest_url, compressionMethod: compressionMethod)
         } catch {
@@ -65,7 +65,7 @@ public struct ZipArchive {
             throw ArgError.UnrecognizableExtension(ext: source_url.pathExtension)
         }
         let trimmed = source_url.lastPathComponent.hasSuffix(".zip") ? String(source_url.lastPathComponent.dropLast(4)) : source_url.lastPathComponent
-        dest_url.appendingPathComponent("\(trimmed)")
+        let _ = dest_url.appendingPathComponent("\(trimmed)")
         let fileManager = FileManager()
         do {
             try fileManager.createDirectory(at: dest_url, withIntermediateDirectories: true, attributes: nil)
@@ -75,8 +75,10 @@ public struct ZipArchive {
         }
         
     }
+    
+    //users could alternatively zip and concat the file/dir
     public func add(to dest:String, from source:String, compressionMethod: CompressionMethod ) throws{
-        //users could alternatively zip and concat the file
+        
         
         
         //source could be a dir or a file
@@ -94,31 +96,56 @@ public struct ZipArchive {
         //decrease EOCD Num of central directory records
         
         let url = URL(fileURLWithPath: path)
+        
         do {
             var data = try Data(contentsOf: url)
             
-            var data_cp: Data = data
-            var start = data_cp.firstRange(of: ZIP_CD_HEADER_SIG)
+            var start = data.firstRange(of: ZIP_CD_HEADER_SIG)
             var cd_header : CdHeader = CdHeader()
             var start_index :Int = 0
             while start != nil {
                 start_index = start!.first!
-                cd_header = read_cd_header(from: data_cp, start:start_index)
+                cd_header = read_cd_header(from: data, start:start_index)
                 if cd_header.filename == file {
                     break
                 }
                 
-                start = data_cp.firstRange(of: ZIP_CD_HEADER_SIG, in:(start!.last!)..<(data_cp.count))
+                start = data.firstRange(of: ZIP_CD_HEADER_SIG, in:(start!.last!)..<(data.count))
             }
+            guard cd_header.filename == file else{
+                throw FileError.DoesNotExist(file: file)
+            }
+            
             //remove cd_header
             data.removeSubrange((start_index)..<(Int(cd_header.cd_header_size) + start_index))
             
             //remove file entry header
-//            data.removeSubrange((cd_header.offset)..<())
+            let n = get_2_bytes(from: data, start: Int(cd_header.offset) + 26)
+            let m = get_2_bytes(from: data, start: Int(cd_header.offset) + 28)
+            print(Array(data.subdata(in: (Int(cd_header.offset))..<(Int(cd_header.offset)+4))))
+            print(String(data: data.subdata(in: (Int(cd_header.offset))..<(Int(cd_header.offset)+4)), encoding: .utf8) ?? "")
+            /*Data integrity is being lost after removing the file entry
+             
+             Reason: When you remove a file entry, the offset of the file entry below it changes.
+             
+             
+             */
             
+            data.removeSubrange((Int(cd_header.offset))..<(Int(cd_header.offset) + 30 + Int(m) + Int(n) + Int(cd_header.compressed_size)))
             
-        }catch {
+            //edit eocd header
+            var eocd_header = read_eocd_from_data(data)
+            eocd_header.cd_size = eocd_header.cd_size - UInt32(cd_header.cd_header_size)
+            eocd_header.cd_total -= 1
+            eocd_header.cd_count_on_disk -= 1
+            data.replaceSubrange((eocd_header.start_off)..<(data.count), with: eocd_header.toData())
             
+            try data.write(to:url, options: .atomic )
+
+            
+        }catch is FileError{
+            
+            throw FileError.DoesNotExist(file: file)
         }
         
         

@@ -10,3 +10,7 @@ public enum ArgError: Error{
     case UnrecognizableExtension(ext : String)
 }
 
+public enum AppError: Error {
+    case ServiceError
+}
+

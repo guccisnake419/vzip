@@ -33,6 +33,7 @@ public struct EntryHeader{
 
 @frozen
 public struct EocdHeader{
+    var start_off : Int = 0
     var eocd_sig = EOCD_SIG
     var disk_num : UInt16 = 0
     var cd_start : UInt16 = 0
@@ -197,7 +198,7 @@ func read_eocd_from_data(_ data: Data) -> EocdHeader {
     let comment : String = String(data: data.subdata(in: (start + 22)..<(data.count)), encoding: .utf8) ?? ""
     
     return EocdHeader(
-        disk_num: disk_num, cd_start: cd_start, cd_count_on_disk: cd_count_on_disk, cd_total: cd_total, cd_size: cd_size, cd_off: offset, comment_length: comment_length, comment: comment
+        start_off: start, disk_num: disk_num, cd_start: cd_start, cd_count_on_disk: cd_count_on_disk, cd_total: cd_total, cd_size: cd_size, cd_off: offset, comment_length: comment_length, comment: comment
     
     )
 }
