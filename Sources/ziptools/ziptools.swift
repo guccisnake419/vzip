@@ -28,13 +28,18 @@ public struct ZipArchive {
     public mutating func list_files(_ path :String) throws {
         //TODO: Add size and last modified
         let url = URL(fileURLWithPath: path)
+        
+        guard url.pathExtension == "zip" else{
+            throw FileError.CannotOpenFile(path: path)
+        }
+        
         do {
             
             let data = try Data(contentsOf: url)
             read_cd_headers(from: data)
             
             for file in files {
-                print(file.filename)
+                print("\(file.filename)\t \(file.offset)")
             }
             
         }catch {
@@ -79,7 +84,7 @@ public struct ZipArchive {
     //users could alternatively zip and concat the file/dir
     public func add(to dest:String, from source:String, compressionMethod: CompressionMethod ) throws{
         
-        
+        throw AppError.ServiceError
         
         //source could be a dir or a file
         //create central directory header
@@ -97,47 +102,72 @@ public struct ZipArchive {
         
         let url = URL(fileURLWithPath: path)
         
+        guard !file.hasSuffix("/") else {
+            throw FileError.CannotRemoveDirectory(file: file)
+        }
+        
         do {
             var data = try Data(contentsOf: url)
             
             var start = data.firstRange(of: ZIP_CD_HEADER_SIG)
             var cd_header : CdHeader = CdHeader()
-            var start_index :Int = 0
+            var start_index:Int = 0, cd_index :Int = 0
+            var filefound = false
+            var n = UInt16()
+            var m = UInt16()
+            var fe_size : UInt32 = 0
+            var file_entry_header_end = 0
             while start != nil {
                 start_index = start!.first!
-                cd_header = read_cd_header(from: data, start:start_index)
-                if cd_header.filename == file {
-                    break
+                let temp_cd_header = read_cd_header(from: data, start:start_index)
+                if temp_cd_header.filename == file {
+                    cd_index = start_index
+                    cd_header = temp_cd_header
+                    filefound = true
+                    n = get_2_bytes(from: data, start: Int(cd_header.offset) + 26)
+                    m = get_2_bytes(from: data, start: Int(cd_header.offset) + 28)
+                    fe_size = 30 + UInt32(m) + UInt32(n) + UInt32(cd_header.compressed_size)
+                    file_entry_header_end = Int(cd_header.offset) + Int(fe_size)
+                    var gpb_flag = get_2_bytes(from: data, start: Int(cd_header.offset)+6)
+                    gpb_flag = (gpb_flag << 12)>>15 //get 3rd least significant bit
+                    if gpb_flag != 0 {
+                        //data descriptor table exists
+                        fe_size += 16
+                        file_entry_header_end += 16
+                    }
+                    start = data.firstRange(of: ZIP_CD_HEADER_SIG, in:(start!.last!)..<(data.count))
+                    
+                    continue
+                }
+                
+                if filefound  {
+                    //update the file entry header offset for the remaining central directory entry.
+                    let offset = get_4_bytes(from: data, start: start_index + 42) - fe_size
+                    print(offset)
+                    data.replaceSubrange((start_index + 42)..<(start_index+46), with: withUnsafeBytes(of: offset){Data($0)})
+                   
                 }
                 
                 start = data.firstRange(of: ZIP_CD_HEADER_SIG, in:(start!.last!)..<(data.count))
             }
+            
             guard cd_header.filename == file else{
                 throw FileError.DoesNotExist(file: file)
             }
             
             //remove cd_header
-            data.removeSubrange((start_index)..<(Int(cd_header.cd_header_size) + start_index))
+            data.removeSubrange((cd_index)..<(Int(cd_header.cd_header_size) + cd_index))
             
             //remove file entry header
-            let n = get_2_bytes(from: data, start: Int(cd_header.offset) + 26)
-            let m = get_2_bytes(from: data, start: Int(cd_header.offset) + 28)
-            print(Array(data.subdata(in: (Int(cd_header.offset))..<(Int(cd_header.offset)+4))))
-            print(String(data: data.subdata(in: (Int(cd_header.offset))..<(Int(cd_header.offset)+4)), encoding: .utf8) ?? "")
-            /*Data integrity is being lost after removing the file entry
-             
-             Reason: When you remove a file entry, the offset of the file entry below it changes.
-             
-             
-             */
             
-            data.removeSubrange((Int(cd_header.offset))..<(Int(cd_header.offset) + 30 + Int(m) + Int(n) + Int(cd_header.compressed_size)))
+            data.removeSubrange((Int(cd_header.offset))..<(file_entry_header_end))
             
             //edit eocd header
             var eocd_header = read_eocd_from_data(data)
             eocd_header.cd_size = eocd_header.cd_size - UInt32(cd_header.cd_header_size)
             eocd_header.cd_total -= 1
             eocd_header.cd_count_on_disk -= 1
+            eocd_header.cd_off = UInt32(data.firstRange(of: ZIP_CD_HEADER_SIG)!.first!)//optimize later
             data.replaceSubrange((eocd_header.start_off)..<(data.count), with: eocd_header.toData())
             
             try data.write(to:url, options: .atomic )
