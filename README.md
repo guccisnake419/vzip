@@ -1,7 +1,7 @@
 # VZIP
 
 
-### NOTE: This version might be buggy, unstable and unable to handle larger zip capacity
+#### This project might be buggy, unstable and unable to handle larger zip capacity
 
 
 A description of this package.
@@ -27,4 +27,23 @@ OPTIONS:
 About the Zip file format
 https://en.wikipedia.org/wiki/ZIP_(file_format)#Encryption
 
+### Installation
+
+MacOS
+
+From Executable
+```
+#Rename the executable to vzip
+sudo mv <pathtobin> /usr/local/bin
+which vzip
+
+```
+
+From Source Code 
+```
+git clone https://github.com/guccisnake419/vzip.git
+swift build -c release
+swift build -c release --show-bin-path #location of the executable
+sudo mv <pathtorelase>/vzip /usr/local/bin
+```
 
