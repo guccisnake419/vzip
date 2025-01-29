@@ -112,29 +112,31 @@ func get_4_bytes(from data: Data, start : Int) -> UInt32{
 
 
 
-func read_cd_header(from data: Data, start :Int)-> CdHeader{
+func read_cd_header(from data: inout Data, start :Int)-> CdHeader{
     let compressed_size = get_4_bytes(from: data, start: start + 20 )
     let uncompressed_size = get_4_bytes(from: data, start: start + 24)
-    let n = Int(get_2_bytes(from: data, start:start+28 ))
-    let m = Int(get_2_bytes(from: data, start: (start + 30)))
-    let k = Int(get_2_bytes(from: data, start:(start + 32) ))
+    let n = get_2_bytes(from: data, start:start+28 )
+    let m = get_2_bytes(from: data, start: (start + 30))
+    let k = get_2_bytes(from: data, start:(start + 32) )
     let offset = get_4_bytes(from: data, start: (start + 42) )
-    let filename: String = String(data: data.subdata(in: (start + 46)..<(start + 46 + n)), encoding: .utf8) ?? ""
-    let extra_field : String = String(data: data.subdata(in: (start + 46 + n)..<(start + 46 + n + m)), encoding: .utf8) ?? ""
-    let comment : String = String(data: data.subdata(in: (start + 46 + n + m )..<(start + 46 + n + m + k)), encoding: .utf8) ?? ""
-    let cd_header_size = 46 + n + m + k
+    let filename: String = String(data: data.subdata(in: (start + 46)..<(start + 46 + Int(n))), encoding: .utf8) ?? ""
+    let extra_field : String = String(data: data.subdata(in: (start + 46 + Int(n))..<(start + 46 + Int(n) + Int(m))), encoding: .utf8) ?? ""
+    
+    let comment : String = String(data: data.subdata(in: (start + 46 + Int(n) + Int(m) )..<(start + 46 + Int(n) + Int(m) + Int(k))), encoding: .utf8) ?? ""
+    let cd_header_size = 46 + Int(n) + Int(m) + Int(k)
+   
      
     return CdHeader(
                     compressed_size: compressed_size,
                     uncompressed_size: uncompressed_size,
-                    filename_length: UInt16(n),
-                    extra_field_length: UInt16(m),
-                    comment_length: UInt16(k),
+                    filename_length: n,
+                    extra_field_length: m,
+                    comment_length: k,
                     offset: offset,
                     filename: filename,
                     extra_field: extra_field,
                     file_comment: comment,
-                    cd_header_size: UInt16(cd_header_size)
+                    cd_header_size: UInt16(truncatingIfNeeded:cd_header_size)
     )
 }
 
@@ -148,16 +150,18 @@ func dissectZip(_ archive: Data) -> ArchiveInfo {
 }
 
 func concatArchive(_ first: Data, _ first_info : ArchiveInfo, _ second: Data, _ second_info: ArchiveInfo) -> Data{
+    
     //second is the smaller one by size
     //TODO: use the file with the smallest count of Central directories instead?
+    //TODO: bounds check each file to not exceed .zip 4GB capacity
     let first_ecod = read_eocd_from_data(first)
     let second_ecod = read_eocd_from_data(second)
     let new_comment = "NOTE: This file has been concatenated \n first comment: \(first_ecod.comment) \n second comment \(second_ecod.comment)"
     let new_ecod = EocdHeader(
         cd_count_on_disk: first_ecod.cd_count_on_disk+second_ecod.cd_count_on_disk,
                               cd_total: first_ecod.cd_total + second_ecod.cd_total,
-        cd_size: first_ecod.cd_size+second_ecod.cd_size, cd_off: UInt32(first_info.cd_entry_start + second_info.cd_entry_start),
-        comment_length: UInt16(new_comment.count), comment: new_comment)
+        cd_size: first_ecod.cd_size+second_ecod.cd_size, cd_off: UInt32(truncatingIfNeeded: first_info.cd_entry_start + second_info.cd_entry_start),
+        comment_length: UInt16(truncatingIfNeeded: new_comment.count), comment: new_comment)
     
     
 
@@ -167,7 +171,7 @@ func concatArchive(_ first: Data, _ first_info : ArchiveInfo, _ second: Data, _ 
     while start != nil {
         let start_index = start!.first!
         let offset_start = start_index + 42
-        var offset = get_4_bytes(from: second_cp, start: offset_start) + UInt32(first_info.cd_entry_start )
+        var offset = get_4_bytes(from: second_cp, start: offset_start) + UInt32(truncatingIfNeeded:first_info.cd_entry_start )
         let offset_bytes = Array(withUnsafeBytes(of: &offset) {Data($0)})
         for i in 0...3 {
             second_cp[offset_start + i] = offset_bytes[i]

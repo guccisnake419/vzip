@@ -1,5 +1,9 @@
 # VZIP
 
+
+### NOTE: This version might be buggy, unstable and unable to handle larger zip capacity
+
+
 A description of this package.
 ```
  __     __  _____  ___   ____  
@@ -7,23 +11,20 @@ A description of this package.
   \ \ / /    / /   | |  | |_) |
    \ V /    / /_   | |  |  __/ 
     \_/    /____| |___| |_|                                 
-```
-Making a Cli tool 
-https://www.swiftbysundell.com/articles/building-a-command-line-tool-using-the-swift-package-manager/
+USAGE: vzip [--list <list>] [--zip <zip> ...] [--unzip <unzip> ...] [--remove <remove> ...] [--concat <concat> ...] [--no_deflate]
 
-System design 
-https://chatgpt.com/c/675a571d-4c3c-8002-9949-a4c20ddf34c4
+OPTIONS:
+  -l, --list <list>       Lists the contents of an archive (e.g., --list <from>)
+  -z, --zip <zip>         Zip an archive (e.g., --zip <from> <to>)
+  --unzip <unzip>         Unzip an archive (e.g., --unzip <from> <to>)
+  -r, --remove <remove>   Remove a file from an archive (e.g., --remove <from> <file_to_remove>)
+  -c, --concat <concat>   Concatenate two archives (e.g., --concat <archive_1> <archive_2> <combination_archive>)
+  --no_deflate            Use deflate compression method
+  -h, --help              Show help information.
+```
+
 
 About the Zip file format
 https://en.wikipedia.org/wiki/ZIP_(file_format)#Encryption
 
-Debugging with lldb
 
-```
-to print a variable 
-    frame variable var_name
-```
-
-Build executable
-
-swift build -c release --show-bin-path

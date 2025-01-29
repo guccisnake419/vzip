@@ -14,14 +14,14 @@ public struct ZipArchive {
          A .zip file consosts of one central directory headers for each entry (file / directory), contained in the
          archive.
      */
-    public mutating func read_cd_headers(from data:Data){
-        var data_cp = data
-        var start = data_cp.firstRange(of: ZIP_CD_HEADER_SIG)
+    public mutating func read_cd_headers(from data: inout Data){
+        var start = data.firstRange(of: ZIP_CD_HEADER_SIG)
         while start != nil {
-            let cd_header = read_cd_header(from: data_cp, start: start!.first!)
+            let cd_header = read_cd_header(from: &data, start: start!.first!)
+            
             files.append(cd_header)
-            data_cp = (data_cp.suffix(from: start!.last!))
-            start =  data_cp.firstRange(of: ZIP_CD_HEADER_SIG)
+            start =  data.firstRange(of: ZIP_CD_HEADER_SIG, in: (start!.last!)..<(data.count))
+           
         }
     }
     
@@ -34,12 +34,13 @@ public struct ZipArchive {
         }
         
         do {
-            
-            let data = try Data(contentsOf: url)
-            read_cd_headers(from: data)
+           
+            var data = try Data(contentsOf: url)
+           
+            read_cd_headers(from: &data)
             
             for file in files {
-                print("\(file.filename)\t \(file.offset)")
+                print("\(file.filename)")
             }
             
         }catch {
@@ -119,7 +120,7 @@ public struct ZipArchive {
             var file_entry_header_end = 0
             while start != nil {
                 start_index = start!.first!
-                let temp_cd_header = read_cd_header(from: data, start:start_index)
+                let temp_cd_header = read_cd_header(from: &data, start:start_index)
                 if temp_cd_header.filename == file {
                     cd_index = start_index
                     cd_header = temp_cd_header
@@ -167,7 +168,7 @@ public struct ZipArchive {
             eocd_header.cd_size = eocd_header.cd_size - UInt32(cd_header.cd_header_size)
             eocd_header.cd_total -= 1
             eocd_header.cd_count_on_disk -= 1
-            eocd_header.cd_off = UInt32(data.firstRange(of: ZIP_CD_HEADER_SIG)!.first!)//optimize later
+            eocd_header.cd_off = UInt32(truncatingIfNeeded: data.firstRange(of: ZIP_CD_HEADER_SIG)!.first!)//optimize later
             data.replaceSubrange((eocd_header.start_off)..<(data.count), with: eocd_header.toData())
             
             try data.write(to:url, options: .atomic )
